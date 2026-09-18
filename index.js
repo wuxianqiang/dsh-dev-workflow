@@ -49,7 +49,6 @@ export function apply(ctx) {
           spec: { type: 'string' },
           design: { type: 'string' },
         },
-        required: ['goal', 'spec', 'design'],
         additionalProperties: false,
       },
       render: (_args, value) => [{
