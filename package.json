@@ -10,7 +10,8 @@
     "README.md"
   ],
   "peerDependencies": {
-    "@deepseek-ai/dsh-tools": ">=0.1.0-rc.1"
+    "@deepseek-ai/cordis": ">=4.0.1",
+    "@deepseek-ai/dsh-tools": ">=0.1.6-alpha.1"
   },
   "dsh": {
     "bundle": {
