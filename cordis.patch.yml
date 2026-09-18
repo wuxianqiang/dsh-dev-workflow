@@ -1,8 +1,12 @@
-# The plugin needs the workflow seam before its tool can start a run.
-# The shipped Web profile disables this optional capability, so this bundle
-# explicitly re-enables the engine and then mounts the workflow tool plugin.
+# Web disables the workflow engine by default. This bundle restores the
+# complete workflow-ptc row from dsh-base instead of partially patching it.
+# Patch rows replace the entire row/config; therefore the provider config is
+# restated here explicitly.
 - id: workflow-ptc
   name: '@deepseek-ai/dsh-workflow-ptc'
+  config:
+    provider: spawn
+    disabled: false
 
 - insert:
     - id: dsh-dev-workflow
