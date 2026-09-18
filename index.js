@@ -68,8 +68,8 @@ export function apply(ctx) {
           name: 'dev-workflow-demo',
           description: 'Minimal development workflow: Specify -> Design.',
           phases: [
-            { name: 'Specify' },
-            { name: 'Design' },
+            { title: 'Specify' },
+            { title: 'Design' },
           ],
         },
         args: {
