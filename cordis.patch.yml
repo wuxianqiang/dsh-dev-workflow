@@ -1,12 +1,12 @@
-# Web disables the workflow engine by default. This bundle restores the
-# complete workflow-ptc row from dsh-base instead of partially patching it.
-# Patch rows replace the entire row/config; therefore the provider config is
-# restated here explicitly.
+# Web disables the workflow engine by default. Restore the same row
+# supplied by dsh-base, including its provider configuration.
+# Patch rows replace the targeted row's whole configuration rather than
+# deep-merging it, so provider: spawn is restated here.
 - id: workflow-ptc
   name: '@deepseek-ai/dsh-workflow-ptc'
+  disabled: false
   config:
     provider: spawn
-    disabled: false
 
 - insert:
     - id: dsh-dev-workflow
