@@ -1,3 +1,9 @@
+# The plugin needs the workflow seam before its tool can start a run.
+# The shipped Web profile disables this optional capability, so this bundle
+# explicitly re-enables the engine and then mounts the workflow tool plugin.
+- id: workflow-ptc
+  name: '@deepseek-ai/dsh-workflow-ptc'
+
 - insert:
     - id: dsh-dev-workflow
       name: dsh-dev-workflow
