@@ -1,64 +1,94 @@
 # dsh-dev-workflow
 
-A minimal proof-of-concept development workflow plugin for DeepSeek Harness.
+A Skill-based development workflow plugin for DeepSeek Harness.
 
-## What this demo validates
+The plugin uses DSH's native Skill system as the primary workflow surface. It does not introduce a second workflow engine or custom state-machine runtime.
 
-The plugin intentionally keeps the scope small:
-
-1. Exposes a `dev_workflow` model-facing tool.
-2. Uses the native DSH `ctx.workflowEngine` service.
-3. Runs two workflow phases:
-   - Specify
-   - Design
-4. Uses two subagents through the native workflow `agent()` hook.
-5. Returns the final structured workflow result to the parent agent.
-
-The bundle also re-enables the Web profile's optional `workflow-ptc` engine because the shipped Web composition disables that capability by default.
-
-It does **not** implement persistence, approvals, Tasks, Implement, Review, or custom UI yet.
-
-## Important: profile selection
-
-A DSH **bundle** and a DSH **profile** are different things.
-
-Running:
-
-```bash
-pnpm dsh plugin --profile demo add ../dsh-dev-workflow
-```
-
-creates a new `demo` profile from the base bundle. It does **not** create a Web profile.
-
-For Web testing, create a custom profile from the shipped Web template first:
-
-```bash
-pnpm dsh --profile dev-workflow-demo --from-default-profile web
-```
-
-Then install this bundle into that profile:
-
-```bash
-pnpm dsh plugin --profile dev-workflow-demo add ../dsh-dev-workflow
-```
-
-Restart the profile after installation:
-
-```bash
-pnpm dsh --profile dev-workflow-demo --no-open
-```
-
-The Web UI should be available at:
+## Workflow
 
 ```text
-http://127.0.0.1:3080
+Specify → Design → Tasks → Implement → Review
 ```
 
-This follows the current DSH profile/bundle model: `--from-default-profile web` copies the shipped Web bundle stack into a new custom profile, while `dsh plugin` manages additional bundles in that profile. citeturn9search0turn9search3
+Each stage has a dedicated Skill and writes project-local artifacts:
+
+```text
+.dev/
+└── workflows/
+    └── <workflow-id>/
+        ├── workflow.json
+        ├── artifacts/
+        │   ├── spec.md
+        │   ├── design.md
+        │   └── tasks.md
+        └── findings/
+            └── review.json
+```
+
+Human decision points happen between agent turns:
+
+```text
+Specify
+  ↓
+spec.md
+  ↓
+User: continue / revise
+  ↓
+Design
+  ↓
+design.md
+  ↓
+User: continue / revise
+  ↓
+Tasks
+  ↓
+tasks.md
+  ↓
+User: continue / revise
+  ↓
+Implement
+  ↓
+code + checks
+  ↓
+User: continue to review
+  ↓
+Review
+  ↓
+findings
+  ↓
+User: fix selected / skip selected
+```
+
+A native DSH Workflow run should not be held open waiting for browser approval. The durable business state lives in `.dev/workflows/<workflow-id>/workflow.json`, while DSH Workflow remains an execution/orchestration capability used inside a stage when appropriate.
+
+## Plugin structure
+
+```text
+dsh-dev-workflow/
+├── package.json
+├── cordis.patch.yml
+├── index.js
+├── README.md
+└── skills/
+    ├── dev-workflow/
+    │   └── SKILL.md
+    ├── specify/
+    │   └── SKILL.md
+    ├── design/
+    │   └── SKILL.md
+    ├── tasks/
+    │   └── SKILL.md
+    ├── implement/
+    │   └── SKILL.md
+    └── review/
+        └── SKILL.md
+```
+
+The bundle registers `@deepseek-ai/dsh-skill-filesystem` with the packaged Skill directory. This follows the Skill-only DSH bundle pattern used by existing open-source integrations.
 
 ## Local development
 
-From a local DSH source checkout:
+Assuming:
 
 ```text
 ~/project/
@@ -74,29 +104,22 @@ pnpm install
 pnpm run build
 ```
 
-Create the Web-based test profile:
+Create a Web-based custom profile:
 
 ```bash
 pnpm dsh --profile dev-workflow-demo --from-default-profile web
 ```
 
-Install the local plugin:
+Install the local bundle:
 
 ```bash
 pnpm dsh plugin --profile dev-workflow-demo add ../dsh-dev-workflow
 ```
 
-Inspect the composed configuration before booting:
+Inspect the composed configuration:
 
 ```bash
 pnpm dsh --profile dev-workflow-demo --dump-config
-```
-
-You should find both:
-
-```text
-workflow-ptc
-dsh-dev-workflow
 ```
 
 Then start:
@@ -105,79 +128,60 @@ Then start:
 pnpm dsh --profile dev-workflow-demo --no-open
 ```
 
-The current DSH documentation recommends this custom-profile flow for testing a bundle against the Web surface. A successful bundle installation is added to the profile's `dsh.profile.bundles` list, and the profile must be restarted after bundle installation. citeturn9search0turn9search7
-
-## Test the workflow
+## First test
 
 Open the Web UI and ask:
 
 > 开始开发一个 Modal 组件，需要支持 loading 和 error 两种状态。
 
-The expected flow is:
+The expected first turn is:
 
-```text
-Agent
-  |
-  | dev_workflow
-  v
-Workflow Engine
-  |
-  +--> Specify
-  |      |
-  |      +--> agent()
-  |
-  +--> Design
-         |
-         +--> agent()
-  |
-  v
-Structured result
-  ├── goal
-  ├── spec
-  └── design
-```
+1. DSH discovers `dev-workflow`.
+2. The Skill creates a workflow directory.
+3. `specify` is loaded.
+4. `spec.md` is created.
+5. The agent summarizes the specification and waits for the user's next instruction.
 
-The workflow engine contract is the native DSH `ctx.workflowEngine` seam; `parent` must be the calling agent, and the run should be awaited and disposed by the consumer. citeturn3search0
+Then send:
 
-## Why the Web profile needs the engine patch
+> 继续
 
-The shipped Web bundle deliberately disables `workflow-ptc` and `tool-workflow` at the Web host layer. The current workflow architecture uses:
+The workflow should load `design`, create `design.md`, and wait again.
 
-```text
-workflow
-   ^
-   | service definition
-workflow-ptc
-   ^
-   | ctx.workflowEngine
-tool-workflow / custom workflow consumers
-```
+To revise instead, send something like:
 
-The current DSH workflow implementation uses `workflow-ptc` as the engine and exposes it through `ctx.workflowEngine`. citeturn5search0turn5search6
+> 修改一下，Modal 还需要支持关闭动画。
 
-Therefore this plugin's bundle patch explicitly restores `workflow-ptc` before registering `dsh-dev-workflow`.
+The current stage should be revised instead of advancing.
 
-## Next steps
+## Design principles
 
-The intended evolution is:
+- **Skills are the workflow instructions.**
+- **DSH Workflow is orchestration, not persistent business state.**
+- **The filesystem is the initial artifact/state boundary.**
+- **Human decisions happen across agent turns.**
+- **Subagents are used only where they materially improve a stage.**
+- **Custom Web UI is a later phase, not an MVP dependency.**
 
-```text
-Goal
-  |
-  v
-Specify
-  |
-  v
-Design
-  |
-  v
-Tasks
-  |
-  v
-Implement
-  |
-  v
-Review
-```
+## Roadmap
 
-The next iteration should add project-local state/checkpoints and human decision points rather than making every stage a mandatory approval gate.
+### Phase 1 — Skill workflow
+
+- Specify
+- Design
+- Tasks
+- Implement
+- Review
+- Project-local state
+- User-controlled continuation/revision
+
+### Phase 2 — Native DSH UI integration
+
+Add Conversation Node definitions for richer stage cards and actions such as:
+
+- Continue
+- Revise
+- Fix selected findings
+- Skip selected findings
+
+This phase should build on DSH's conversation/session event model instead of creating a parallel frontend protocol.
