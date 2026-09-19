@@ -1,13 +1,9 @@
-# Web disables the workflow engine by default. Restore the same row
-# supplied by dsh-base, including its provider configuration.
-# Patch rows replace the targeted row's whole configuration rather than
-# deep-merging it, so provider: spawn is restated here.
-- id: workflow-ptc
-  name: '@deepseek-ai/dsh-workflow-ptc'
-  disabled: false
-  config:
-    provider: spawn
-
+# Register the packaged development workflow Skills with DSH.
+# This follows the standard Skill-only bundle pattern.
 - insert:
-    - id: dsh-dev-workflow
-      name: dsh-dev-workflow
+    - id: dsh-dev-workflow-skill-filesystem
+      name: '@deepseek-ai/dsh-skill-filesystem'
+      config:
+        providerName: dsh-dev-workflow-plugin
+        includeDefaultRoots: false
+        bundledSkillDir: !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('dsh-dev-workflow/package.json')), 'skills')

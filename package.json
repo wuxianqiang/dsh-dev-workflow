@@ -1,13 +1,20 @@
 {
   "name": "dsh-dev-workflow",
-  "version": "0.1.0",
-  "description": "Minimal DeepSeek Harness development workflow demo.",
+  "version": "0.2.0",
+  "description": "Structured development workflow Skills for DeepSeek Harness.",
   "type": "module",
-  "main": "index.js",
+  "main": "./index.js",
   "files": [
     "index.js",
     "cordis.patch.yml",
+    "skills",
     "README.md"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "agent-skill",
+    "development-workflow"
   ],
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1",
